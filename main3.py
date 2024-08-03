@@ -145,7 +145,7 @@ async def call(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     admins_links = ""
     for admin_id in admin_ids:
-        admins_links += (f' <a href="tg://user?id={user_id}">{_members_emodzi_list[admin_id % 100]}</a>')
+        admins_links += (f' <a href="tg://user?id={admin_id}">{_members_emodzi_list[admin_id % 100]}</a>')
 
     await update.effective_chat.send_message(admins_links, parse_mode='HTML')
 
