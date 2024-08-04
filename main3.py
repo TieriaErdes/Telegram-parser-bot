@@ -94,7 +94,7 @@ async def add_users_in_bd(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     # Получаем список имен и фамилий
     admins_ids = [(admins.user.id) for admins in chat_admins]
     for admin_id in admins_ids:
-        c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (chat_id, admin_id, 0, NoneЫ))
+        c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (chat_id, admin_id, 0, None))
     conn.close()
 
 async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
