@@ -193,14 +193,16 @@ async def help(update: Update, bot: ContextTypes.DEFAULT_TYPE) -> None:
                                     f"/{help.__name__} \n"
                                     f"/{show_chats.__name__} \n"
                                     f"/{show_admins.__name__} \n"
-                                    f'калл \n',
-                                    'помощь \n',
-                                    'список \n',
-                                    'список участников \n',
-                                    'чаты с ботом \n',
-                                    'снег \n',
-                                    'моя стата снега \n',
-                                    'стата снега \n',
+                                    "калл \n"
+                                    "помощь \n"
+                                    "help \n"
+                                    "памагити \n"
+                                    "список \n"
+                                    "список участников \n"
+                                    "чаты с ботом \n"
+                                    "снег \n"
+                                    "моя стата снега \n"
+                                    "стата снега \n"
                                     )
 
 
@@ -379,6 +381,8 @@ async def allChat_snow_stats(update: Update, context: ContextTypes.DEFAULT_TYPE)
 commands = {
     'калл': call,
     'помощь': help,
+    'help': help,
+    'памагити': help,
     'список': show_admins,
     'список участников': show_admins,
     'чаты с ботом': show_chats,
