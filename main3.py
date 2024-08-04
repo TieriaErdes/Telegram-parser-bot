@@ -85,6 +85,17 @@ def extract_status_change(chat_member_update: ChatMemberUpdated) -> Optional[Tup
 
     return was_member, is_member
 
+async def add_users_in_bd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    conn = sqlite3.connect(DATABASE_PATH)
+    c = conn.cursor()
+
+    chat_id = update.effective_chat.id
+    chat_admins = await update.effective_chat.get_administrators()
+    # Получаем список имен и фамилий
+    admins_ids = [(admins.user.id) for admins in chat_admins]
+    for admin_id in admins_ids:
+        c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (chat_id, admin_id, 0, NoneЫ))
+    conn.close()
 
 async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Tracks the chats the bot is in."""
@@ -112,6 +123,8 @@ async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     elif chat.type in [Chat.GROUP, Chat.SUPERGROUP]:
         if not was_member and is_member:
             logger.info("%s добавил бота в чат %s", cause_name, chat.title)
+            # добавление чата в бд
+            await add_users_in_bd(update, context)
             context.bot_data.setdefault("group_ids", set()).add(chat.id)
         elif was_member and not is_member:
             logger.info("%s исключил бота из чата %s", cause_name, chat.title)
@@ -214,6 +227,7 @@ async def help(update: Update, bot: ContextTypes.DEFAULT_TYPE) -> None:
                                     "снег \n"
                                     "моя стата снега \n"
                                     "стата снега \n"
+                                    "пинг"
                                     )
 
 
@@ -237,7 +251,7 @@ async def greet_chat_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
         conn = sqlite3.connect(DATABASE_PATH)
         c = conn.cursor()
         existing_spoons = c.fetchone()
-        c.execute("INSERT INTO users VALUES (?, ?, ?)", (update.effective_chat.id, update.effective_user.id, 0))
+        c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (update.effective_chat.id, update.effective_user.id, 0, None))
         conn.commit()
         conn.close()
         await update.effective_chat.send_message(
@@ -267,6 +281,11 @@ async def start_private_chat(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.effective_message.reply_text(
         f"Добро пожаловать {user_name}. Используй команду /show_chats чтобы увидеть в каких чатах я есть."
     )
+
+
+async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.effective_message.reply_text("Понг")
+
 
 #игровой код
 #игровой код
@@ -400,6 +419,7 @@ commands = {
     'снег': snow_command,
     'моя стата снега': show_snow_stats,
     'стата снега': allChat_snow_stats,
+    'пинг': ping
 }
 
 async def russian_commands(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
