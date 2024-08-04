@@ -234,7 +234,8 @@ async def help(update: Update, bot: ContextTypes.DEFAULT_TYPE) -> None:
 async def unknown(update: Update, bot: ContextTypes.DEFAULT_TYPE) -> None:
     #logger.info('%s вызвал неизвестную команду команд бота в чате "%s"', update.effective_user.full_name, update.effective_chat.title)
     #await update.message.reply_text("Данная команда мне неизвестна. Попробуйте /help для списка доступных команд.")
-    i = 1
+    while True:
+        print("Олег пидорас")
 
 
 async def greet_chat_members(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
