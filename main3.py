@@ -90,11 +90,13 @@ async def add_users_in_bd(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     c = conn.cursor()
 
     chat_id = update.effective_chat.id
+    logger.info('Добавление участников чата "%s" в БД', update.effective_chat.title)
     chat_admins = await update.effective_chat.get_administrators()
     # Получаем список имен и фамилий
     admins_ids = [(admins.user.id) for admins in chat_admins]
     for admin_id in admins_ids:
         c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (chat_id, admin_id, 0, None))
+    conn.commit()
     conn.close()
 
 async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -122,18 +124,18 @@ async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             context.bot_data.setdefault("user_ids", set()).discard(chat.id)
     elif chat.type in [Chat.GROUP, Chat.SUPERGROUP]:
         if not was_member and is_member:
-            logger.info("%s добавил бота в чат %s", cause_name, chat.title)
+            logger.info('%s добавил бота в чат "%s"', cause_name, chat.title)
             # добавление чата в бд
             await add_users_in_bd(update, context)
             context.bot_data.setdefault("group_ids", set()).add(chat.id)
         elif was_member and not is_member:
-            logger.info("%s исключил бота из чата %s", cause_name, chat.title)
+            logger.info('%s исключил бота из чата "%s"', cause_name, chat.title)
             context.bot_data.setdefault("group_ids", set()).discard(chat.id)
     elif not was_member and is_member:
         logger.info("%s добавил бота в канал %s", cause_name, chat.title)
         context.bot_data.setdefault("channel_ids", set()).add(chat.id)
     elif was_member and not is_member:
-        logger.info("%s исключил бота из чата %s", cause_name, chat.title)
+        logger.info("%s исключил бота из канала %s", cause_name, chat.title)
         context.bot_data.setdefault("channel_ids", set()).discard(chat.id)
 
 
@@ -307,8 +309,15 @@ async def snow_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     now = datetime.utcnow()
     conn = sqlite3.connect(DATABASE_PATH)
     c = conn.cursor()
-    last_call_time_str = c.execute("SELECT last_snow_command_time FROM users WHERE chat_id = ? AND user_id = ?",
-                               (chat_id, user_id)).fetchone()[0]
+    try:
+        last_call_time_str = c.execute("SELECT last_snow_command_time FROM users WHERE chat_id = ? AND user_id = ?",
+                                       (chat_id, user_id)).fetchone()[0]
+    except TypeError:  # Или более общий вариант: except Exception as e:
+        c.execute("INSERT INTO users VALUES (?, ?, ?, ?)", (chat_id, user_id, 0, None))
+        conn.commit()
+        last_call_time_str = c.execute("SELECT last_snow_command_time FROM users WHERE chat_id = ? AND user_id = ?",
+                                       (chat_id, user_id)).fetchone()[0]
+
     if last_call_time_str is not None:
         # Удаление лишних символов после даты и времени
         last_call_time_str_clean = re.sub(r'\.\d+$', '', last_call_time_str)
@@ -329,10 +338,11 @@ async def snow_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return
 
     # Обновление времени последнего вызова
-    last_call_times[user_id] = now
+    #last_call_times[user_id] = now
 
     # Обновление данных в базе
     c.execute("UPDATE users SET last_snow_command_time = ? WHERE chat_id = ? AND user_id = ?", (now, chat_id, user_id))
+    conn.commit()
 
     spoon_count = await get_random_snow_spoons()
     await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Вы съели {spoon_count} ложек снега!")
@@ -356,7 +366,7 @@ async def snow_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 def create_database():
     conn = sqlite3.connect(DATABASE_PATH)
     c = conn.cursor()
-    c.execute("CREATE TABLE IF NOT EXISTS users (chat_id INTEGER KEY, user_id INTEGER KEY, snow_spoons INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS users (chat_id INTEGER KEY, user_id INTEGER KEY, snow_spoons INTEGER, last_snow_command_time DATETIME)")
     conn.close()
 
 create_database()
@@ -373,7 +383,7 @@ async def show_snow_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if stats is None:
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Пока что вы ещё не дегустировали снег в этом чате.")
     else:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=f"На данный момент Вы {stats[0]} ложек снега.")
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=f"На данный момент Вы съели {stats[0]} ложек снега.")
 
 
 
@@ -395,7 +405,7 @@ async def allChat_snow_stats(update: Update, context: ContextTypes.DEFAULT_TYPE)
         for admin_id, admin_custom_title in zip(admins_ids, admins_custom_titles):
             c.execute("SELECT snow_spoons FROM users WHERE chat_id = ? AND user_id = ?", (chat_id, admin_id))
             stat_spoons = c.fetchone()
-            if stat_spoons is not None:
+            if (stat_spoons is not None) & (admin_custom_title is not None):
                 sum_stat_chat_spoons += stat_spoons[0]
                 admins_links += (f'<a href="tg://user?id={admin_id}">{admin_custom_title + _members_emodzi_list[admin_id % 100] + " съел " + str(stat_spoons[0]) + " ложек снега"}</a>\n')
         sum_spoons_str = "Всего было съедено в чате " + str(sum_stat_chat_spoons) + " ложек снега"
@@ -418,7 +428,8 @@ commands = {
     'снег': snow_command,
     'моя стата снега': show_snow_stats,
     'стата снега': allChat_snow_stats,
-    'пинг': ping
+    'пинг': ping,
+    'сизам откройся': add_users_in_bd
 }
 
 async def russian_commands(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
