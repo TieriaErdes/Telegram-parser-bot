@@ -192,7 +192,15 @@ async def help(update: Update, bot: ContextTypes.DEFAULT_TYPE) -> None:
                                     f"/{call.__name__} \n"
                                     f"/{help.__name__} \n"
                                     f"/{show_chats.__name__} \n"
-                                    f"/{show_admins.__name__}"
+                                    f"/{show_admins.__name__} \n"
+                                    f'калл \n',
+                                    'помощь \n',
+                                    'список \n',
+                                    'список участников \n',
+                                    'чаты с ботом \n',
+                                    'снег \n',
+                                    'моя стата снега \n',
+                                    'стата снега \n',
                                     )
 
 
